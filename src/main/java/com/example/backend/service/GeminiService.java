@@ -28,7 +28,7 @@ public class GeminiService {
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents?key=";
 
     private static final String GENERATE_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=";
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=";
 
     /**
      * Compute a 768-dimension semantic vector for the provided text chunk.

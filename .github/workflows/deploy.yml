@@ -26,7 +26,9 @@ jobs:
       # The pom.xml is already configured with frontend-maven-plugin which 
       # automatically downloads Node, builds React, and copies the assets for us.
       - name: Build Full Application
-        run: ./mvnw clean package -DskipTests
+        run: |
+          chmod +x mvnw
+          ./mvnw clean package -DskipTests
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3

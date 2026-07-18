@@ -26,8 +26,8 @@
 |---|---|---|
 | **Frontend** | React + Vite + Tailwind CSS | React 19, Vite 8 |
 | **Backend** | Spring Boot + Apache Tomcat | Spring Boot 4.1 |
-| **AI Engine** | Google Gemini API (gemini-2.0-flash) | REST |
-| **Embeddings** | Google Gemini Embedding API (gemini-embedding-001) | 768-dim vectors |
+| **AI Engine** | Azure OpenAI API (gpt-4o / gpt-35-turbo) | REST |
+| **Embeddings** | Azure OpenAI Embeddings (text-embedding-3-small) | 1536-dim vectors |
 | **RAG Store** | In-Memory Vector Store | Cosine Similarity |
 | **File Parsing** | Apache PDFBox + Apache POI | PDF + DOCX |
 | **Build** | Maven Wrapper + frontend-maven-plugin | Node v22.12.0 |
@@ -62,14 +62,14 @@
 │  ├─────────────────────────────────────────────────────────┤   │
 │  │  ResumeService      → parses file, chunks text          │   │
 │  │  VectorStoreService → stores & searches embeddings      │   │
-│  │  GeminiService      → calls Gemini AI REST APIs         │   │
+│  │  AzureOpenAiService → calls Azure OpenAI REST APIs      │   │
 │  └────────────────┬─────────────────┬───────────────────────   │
 │                   │                 │                           │
 └───────────────────┼─────────────────┼───────────────────────────┘
                     │                 │
                     ▼                 ▼
          ┌──────────────────┐   ┌─────────────────────┐
-         │ Google Gemini AI │   │ In-Memory Vector     │
+         │ Azure OpenAI     │   │ In-Memory Vector     │
          │  - Embeddings    │   │ Store (RAG)          │
          │  - Generation    │   │  - Cosine similarity │
          └──────────────────┘   └─────────────────────┘
@@ -78,10 +78,10 @@
 **How it works:**
 1. User uploads a resume (PDF/DOCX) and selects a target job role.
 2. Spring Boot parses the file and extracts plain text.
-3. Text is chunked and sent to Gemini Embedding API to generate semantic vectors.
+3. Text is chunked and sent to Azure OpenAI Embeddings to generate semantic vectors.
 4. Vectors are stored in-memory for the session.
-5. Gemini 2.5 Flash generates a structured JSON analysis report.
-6. User can ask follow-up questions — matched against stored vectors (RAG), then answered by Gemini.
+5. Azure OpenAI generates a structured JSON analysis report.
+6. User can ask follow-up questions — matched against stored vectors (RAG), then answered by Azure OpenAI.
 
 ---
 
@@ -115,7 +115,7 @@ resume-analyzer-service/                      ← Monorepo Root
 │       │   │   └── SpaController.java       ← Forwards SPA routes to index.html
 │       │   ├── service/
 │       │   │   ├── ResumeService.java       ← Orchestrates parsing + AI flow
-│       │   │   ├── GeminiService.java       ← Google Gemini REST client
+│       │   │   ├── AzureOpenAiService.java  ← Azure OpenAI REST client
 │       │   │   └── VectorStoreService.java  ← Cosine similarity vector search
 │       │   ├── parser/                      ← PDF (PDFBox) + DOCX (POI) parsers
 │       │   └── dto/                         ← AnalysisReportDto, ChatRequest/Response
@@ -138,7 +138,7 @@ resume-analyzer-service/                      ← Monorepo Root
 | **Java JDK** | 17 or higher | `java -version` to verify |
 | **Maven** | Not required | `mvnw.cmd` wrapper is included |
 | **Node.js** | Not required | Auto-downloaded by Maven plugin |
-| **Google Gemini API Key** | Valid key | Get one at [aistudio.google.com](https://aistudio.google.com) |
+| **Azure OpenAI Resource** | Valid endpoint/key | Configure in Azure Portal |
 
 > **Note:** You do **not** need to install Maven or Node.js globally. The included Maven Wrapper (`mvnw.cmd`) and `frontend-maven-plugin` handle everything automatically — including downloading Node.js `v22.12.0`.
 
@@ -156,8 +156,11 @@ server.port=8081
 spring.servlet.multipart.max-file-size=15MB
 spring.servlet.multipart.max-request-size=15MB
 
-# Google Gemini API Key — REQUIRED
-gemini.api.key=YOUR_GEMINI_API_KEY_HERE
+# Azure OpenAI Configuration — REQUIRED
+azure.openai.endpoint=https://YOUR_RESOURCE_NAME.openai.azure.com/
+azure.openai.api.key=YOUR_AZURE_API_KEY_HERE
+azure.openai.chat.deployment=gpt-4o
+azure.openai.embedding.deployment=text-embedding-3-small
 ```
 
 ---
@@ -294,7 +297,7 @@ Base URL: `http://localhost:8081/api`
 
 ### `POST /api/resume/analyze`
 
-Uploads a resume file, analyzes it against a target job role using Gemini AI, and returns a structured report.
+Uploads a resume file, analyzes it against a target job role using Azure OpenAI, and returns a structured report.
 
 **Request** (`multipart/form-data`):
 
@@ -357,7 +360,7 @@ Ask a semantic question about a previously analyzed resume using RAG (Retrieval-
 |---|---|---|
 | `Port 8081 already in use` | Another process is running on the port | Run `netstat -ano \| findstr :8081` to find the PID, then `taskkill /PID <pid> /F` |
 | `npm run build` fails with `SyntaxError` | Node version too old | Ensure `pom.xml` has `<nodeVersion>v22.12.0</nodeVersion>` or higher |
-| `401 Unauthorized` from Gemini | Missing or expired API key | Update `gemini.api.key` in `application.properties` |
+| `401 Unauthorized` from Azure OpenAI | Missing or expired API key | Update `azure.openai.api.key` in `application.properties` |
 | React route returns `404` | Spring Boot intercepting SPA routes | Ensure `SpaController.java` exists in the `controller` package |
 | `npm install` fails | Corrupted `node_modules` | Delete `frontend/node_modules/` and `frontend/package-lock.json`, then run `.\mvnw.cmd clean install` again |
 | `BUILD FAILURE` on first run | Maven downloading dependencies | Wait — the first build downloads all dependencies. Should succeed on retry if internet is available. |

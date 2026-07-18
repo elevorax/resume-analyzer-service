@@ -8,18 +8,19 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Service to chunk texts, store their computed embeddings in memory, and query them.
+ * Service to chunk texts, store their computed embeddings in memory, and query
+ * them.
  */
 @Service
 public class VectorStoreService {
 
-    private final GeminiService geminiService;
+    private final AzureOpenAiService azureOpenAiService;
 
     // Concurrent in-memory database mapping: documentId -> list of vector chunks
     private final Map<String, List<VectorEntry>> vectorDb = new ConcurrentHashMap<>();
 
-    public VectorStoreService(GeminiService geminiService) {
-        this.geminiService = geminiService;
+    public VectorStoreService(AzureOpenAiService azureOpenAiService) {
+        this.azureOpenAiService = azureOpenAiService;
     }
 
     @Getter
@@ -30,7 +31,8 @@ public class VectorStoreService {
     }
 
     /**
-     * Chunk the plain text, calculate embeddings in a single batch, save them under a documentId UUID.
+     * Chunk the plain text, calculate embeddings in a single batch, save them under
+     * a documentId UUID.
      */
     public String storeDocument(String text) {
         String documentId = UUID.randomUUID().toString();
@@ -38,7 +40,7 @@ public class VectorStoreService {
         List<VectorEntry> entries = new ArrayList<>();
 
         if (!chunks.isEmpty()) {
-            List<float[]> embeddings = geminiService.getEmbeddings(chunks);
+            List<float[]> embeddings = azureOpenAiService.getEmbeddings(chunks);
             for (int i = 0; i < chunks.size(); i++) {
                 entries.add(new VectorEntry(chunks.get(i), embeddings.get(i)));
             }
@@ -49,7 +51,8 @@ public class VectorStoreService {
     }
 
     /**
-     * Return context chunks relevant to the user query based on cosine similarity scores.
+     * Return context chunks relevant to the user query based on cosine similarity
+     * scores.
      */
     public List<String> retrieveRelevantContext(String documentId, String query, int topK) {
         List<VectorEntry> entries = vectorDb.get(documentId);
@@ -57,7 +60,7 @@ public class VectorStoreService {
             return Collections.emptyList();
         }
 
-        float[] queryEmbedding = geminiService.getEmbedding(query);
+        float[] queryEmbedding = azureOpenAiService.getEmbedding(query);
 
         List<SimilarityResult> results = new ArrayList<>();
         for (VectorEntry entry : entries) {
@@ -88,7 +91,7 @@ public class VectorStoreService {
             int end = Math.min(index + size, text.length());
             String chunk = text.substring(index, end);
             chunks.add(chunk);
-            
+
             if (end == text.length()) {
                 break;
             }

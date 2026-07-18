@@ -19,15 +19,15 @@ public class ResumeService {
 
     private final DocumentParser documentParser;
     private final VectorStoreService vectorStoreService;
-    private final GeminiService geminiService;
+    private final AzureOpenAiService azureOpenAiService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ResumeService(DocumentParser documentParser,
                          VectorStoreService vectorStoreService,
-                         GeminiService geminiService) {
+                         AzureOpenAiService azureOpenAiService) {
         this.documentParser = documentParser;
         this.vectorStoreService = vectorStoreService;
-        this.geminiService = geminiService;
+        this.azureOpenAiService = azureOpenAiService;
     }
 
     /**
@@ -43,8 +43,8 @@ public class ResumeService {
         // 3. Build prompt requesting detailed structured evaluation
         String analysisPrompt = buildAnalysisPrompt(plainText, jobRole);
 
-        // 4. Send request to Gemini
-        String rawJson = geminiService.generateStructuredContent(analysisPrompt);
+        // 4. Send request to Azure OpenAI
+        String rawJson = azureOpenAiService.generateStructuredContent(analysisPrompt);
 
         // 5. Clean and parse JSON response
         String cleanJson = sanitizeJsonString(rawJson);
@@ -54,7 +54,7 @@ public class ResumeService {
             report.setDocumentId(documentId); // Attach document UUID for future chat Q&A
             return report;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse Gemini analysis output JSON: " + e.getMessage() + "\nRaw response: " + rawJson, e);
+            throw new RuntimeException("Failed to parse Azure OpenAI analysis output JSON: " + e.getMessage() + "\nRaw response: " + rawJson, e);
         }
     }
 
@@ -80,7 +80,7 @@ public class ResumeService {
         String chatPrompt = buildChatPrompt(relevantChunks, request.getQuery());
 
         // 3. Generate response text from LLM
-        String rawResponse = geminiService.generatePlainContent(chatPrompt);
+        String rawResponse = azureOpenAiService.generatePlainContent(chatPrompt);
         
         // Strip unnecessary json structures if returned, since we requested generic conversational text
         String cleanResponse = sanitizeConversationalResponse(rawResponse);

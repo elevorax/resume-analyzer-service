@@ -29,7 +29,7 @@ public class AzureOpenAiService {
     @Value("${azure.openai.embedding.deployment}")
     private String embeddingDeployment;
 
-    @Value("${azure.openai.api.version:2024-02-01}")
+    @Value("${azure.openai.api.version}")
     private String apiVersion;
 
     private final RestTemplate restTemplate = new RestTemplate();
@@ -113,7 +113,10 @@ public class AzureOpenAiService {
                 "messages", List.of(
                         Map.of("role", "user", "content", prompt)
                 ),
-                "response_format", Map.of("type", "json_object")
+                "response_format", Map.of("type", "json_object"),
+                "model", chatDeployment,
+                "max_completion_tokens", 16384,
+                "reasoning_effort", "low"
         );
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
@@ -137,7 +140,10 @@ public class AzureOpenAiService {
         Map<String, Object> requestBody = Map.of(
                 "messages", List.of(
                         Map.of("role", "user", "content", prompt)
-                )
+                ),
+                "model", chatDeployment,
+                "max_completion_tokens", 16384,
+                "reasoning_effort", "low"
         );
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
@@ -168,6 +174,7 @@ public class AzureOpenAiService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("api-key", apiKey);
+        headers.set("Authorization", "Bearer " + apiKey);
         return headers;
     }
 
@@ -178,7 +185,7 @@ public class AzureOpenAiService {
 
     private String buildChatUrl() {
         String base = endpoint.endsWith("/") ? endpoint : endpoint + "/";
-        return base + "openai/deployments/" + chatDeployment + "/chat/completions?api-version=" + apiVersion;
+        return base + "openai/v1/chat/completions";
     }
 
     private float[] convertFloatArray(List<?> values) {
